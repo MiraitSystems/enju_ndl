@@ -87,8 +87,8 @@ module EnjuNdl
         statement_of_responsibility = doc.xpath('//dcndl:BibResource/dc:creator').map{|e| e.content}.join("; ")
 
         manifestation = nil
-        Agent.transaction do
-          publisher_agents = Agent.import_agents(publishers)
+        Patron.transaction do
+          publisher_agents = Patron.import_patrons(publishers)
 
           manifestation = Manifestation.new(
             :manifestation_identifier => admin_identifier,
@@ -103,7 +103,7 @@ module EnjuNdl
             :description => description,
             :volume_number_string => volume_number_string,
             :price => price,
-            :statement_of_responsibility => statement_of_responsibility,
+#            :statement_of_responsibility => statement_of_responsibility,
             :start_page => extent[:start_page],
             :end_page => extent[:end_page],
             :height => extent[:height]
@@ -112,6 +112,7 @@ module EnjuNdl
           if isbn
             identifier[:isbn] = Identifier.new(:body => isbn)
             identifier[:isbn].identifier_type = IdentifierType.where(:name => 'isbn').first_or_create
+            manifestation.isbn = isbn # for enju_trunk
           end
           if iss_itemno
             identifier[:iss_itemno] = Identifier.new(:body => iss_itemno)
@@ -124,6 +125,7 @@ module EnjuNdl
           if issn
             identifier[:issn] = Identifier.new(:body => issn)
             identifier[:issn].identifier_type = IdentifierType.where(:name => 'issn').first_or_create
+            manifestation.issn = issn # for enju_turnk
           end
           if issn_l
             identifier[:issn_l] = Identifier.new(:body => issn_l)
@@ -143,6 +145,7 @@ module EnjuNdl
         end
 
         #manifestation.send_later(:create_frbr_instance, doc.to_s)
+        manifestation.external_catalog = 1 # for enju_trunk
         return manifestation
       end
 
@@ -154,8 +157,8 @@ module EnjuNdl
         classifications = get_classifications(doc).uniq
         classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
 
-        Agent.transaction do
-          creator_agents = Agent.import_agents(creators)
+        Patron.transaction do
+          creator_agents = Patron.import_patrons(creators)
           language_id = Language.where(:iso_639_2 => language).first.id rescue 1
           content_type_id = ContentType.where(:name => 'text').first.id rescue 1
           manifestation.creators << creator_agents
@@ -166,8 +169,8 @@ module EnjuNdl
               subject = Subject.where(:term => term[:term]).first
               unless subject
                 subject = Subject.new(term)
-                subject.subject_heading_type = subject_heading_type
-                subject.subject_type = SubjectType.where(:name => 'concept').first_or_create
+                subject.subject_heading_types << subject_heading_type # for enju_trunk
+                subject.subject_type = SubjectType.where(:name => 'Concept').first_or_create
               end
               #if subject.valid?
                 manifestation.subjects << subject
