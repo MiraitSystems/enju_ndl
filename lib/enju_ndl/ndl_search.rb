@@ -329,7 +329,7 @@ module EnjuNdl
         end
 
         if series_statement.try(:save)
-          manifestation.series_statements << series_statement
+          manifestation.series_statement = series_statement # for enju_trunk
         end
         manifestation
       end
