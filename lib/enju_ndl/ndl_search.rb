@@ -18,7 +18,7 @@ module EnjuNdl
         #end
 
         manifestation = Manifestation.find_by_isbn(lisbn.isbn)
-        return manifestation.first if manifestation.present?
+        return manifestation if manifestation.present?
 
         doc = return_xml(lisbn.isbn)
         raise EnjuNdl::RecordNotFound unless doc
@@ -210,6 +210,24 @@ module EnjuNdl
           feed = RSS::Parser.parse(url, false)
         end
       end
+  
+      def search_ndl_sru(query, options = {})
+        Rails.logger.error "query: #{query}"
+        options = {:operation => 'searchRetrieve', :recordScheme => 'dcndl', :startRecord => 1, :maximumRecords => 10}.merge(options)
+        doc = nil
+        results = {}
+        startrecord = options[:startRecord].to_i
+        if startrecord == 0
+          startrecord = 1
+        end
+        url = "http://iss.ndl.go.jp/api/sru?operation=#{options[:operation]}&recordSchema=#{options[:recordScheme]}&query=#{format_query(query)}&startRecord=#{options[:startRecord]}&maximumRecords=#{options[:maximumRecords]}"
+        Rails.logger.error url
+        if options[:raw] == true
+          open(url).read
+        else
+          results = Nokogiri::XML(open(url).read).remove_namespaces!.at("//searchRetrieveResponse/records/record/recordData").children
+        end
+      end
 
       def normalize_isbn(isbn)
         if isbn.length == 10
@@ -220,13 +238,20 @@ module EnjuNdl
       end
 
       def return_xml(isbn)
-        rss = self.search_ndl(isbn, {:dpid => 'iss-ndl-opac', :item => 'isbn'})
-        if rss.channel.totalResults.to_i == 0
-          isbn = normalize_isbn(isbn)
+        protocol = Setting.try(:ndl_api_type)
+        if protocol == 'sru'
+          results = self.search_ndl_sru("isbn=#{isbn}")
+          detail_url = Nokogiri::XML(results.first).at('//dcndl:BibAdminResource[@rdf:about]').attributes["about"].value
+          doc = Nokogiri::XML(open("#{detail_url}.rdf").read)
+        else # protocol == 'opensearch'
           rss = self.search_ndl(isbn, {:dpid => 'iss-ndl-opac', :item => 'isbn'})
-        end
-        if rss.items.first
-          doc = Nokogiri::XML(open("#{rss.items.first.link}.rdf").read)
+          if rss.channel.totalResults.to_i == 0
+            isbn = normalize_isbn(isbn)
+            rss = self.search_ndl(isbn, {:dpid => 'iss-ndl-opac', :item => 'isbn'})
+          end
+          if rss.items.first
+            doc = Nokogiri::XML(open("#{rss.items.first.link}.rdf").read)
+          end
         end
       end
 
