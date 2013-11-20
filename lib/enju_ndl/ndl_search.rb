@@ -212,7 +212,6 @@ module EnjuNdl
       end
   
       def search_ndl_sru(query, options = {})
-        Rails.logger.error "query: #{query}"
         options = {:operation => 'searchRetrieve', :recordScheme => 'dcndl', :startRecord => 1, :maximumRecords => 10}.merge(options)
         doc = nil
         results = {}
@@ -220,12 +219,12 @@ module EnjuNdl
         if startrecord == 0
           startrecord = 1
         end
-        url = "http://iss.ndl.go.jp/api/sru?operation=#{options[:operation]}&recordSchema=#{options[:recordScheme]}&query=#{format_query(query)}&startRecord=#{options[:startRecord]}&maximumRecords=#{options[:maximumRecords]}"
-        Rails.logger.error url
+        url = "http://iss.ndl.go.jp/api/sru?operation=#{options[:operation]}&recordSchema=#{options[:recordScheme]}&query=#{format_query(query)}&startRecord=#{options[:startRecord]}&maximumRecords=#{options[:maximumRecords]}&onlyBib=true"
         if options[:raw] == true
           open(url).read
         else
-          results = Nokogiri::XML(open(url).read).remove_namespaces!.at("//searchRetrieveResponse/records/record/recordData").children
+          xml = open(url).read
+          response = Nokogiri::XML(xml).at('//xmlns:recordData')
         end
       end
 
@@ -240,9 +239,8 @@ module EnjuNdl
       def return_xml(isbn)
         protocol = Setting.try(:ndl_api_type)
         if protocol == 'sru'
-          results = self.search_ndl_sru("isbn=#{isbn}")
-          detail_url = Nokogiri::XML(results.first).at('//dcndl:BibAdminResource[@rdf:about]').attributes["about"].value
-          doc = Nokogiri::XML(open("#{detail_url}.rdf").read)
+          response = self.search_ndl_sru("isbn=#{isbn}")
+          doc = Nokogiri::XML(response.content)
         else # protocol == 'opensearch'
           rss = self.search_ndl(isbn, {:dpid => 'iss-ndl-opac', :item => 'isbn'})
           if rss.channel.totalResults.to_i == 0
