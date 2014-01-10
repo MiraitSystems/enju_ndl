@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.authors     = ["Kosuke Tanabe"]
   s.email       = ["tanabe@mwr.mediacom.keio.ac.jp"]
   s.homepage    = "https://github.com/next-l/enju_ndl"
-  s.summary     = "enju_ndl plugin"
+  s.summary     = "enju_trunk_ndl plugin"
   s.description = "NDL WebAPI wrapper for Next-L Enju"
 
   s.files = Dir["{app,config,db,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.rdoc"]

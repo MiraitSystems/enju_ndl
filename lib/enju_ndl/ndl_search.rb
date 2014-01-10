@@ -52,9 +52,15 @@ module EnjuNdl
           end
         end
 
+        jpn_or_foreign = nil
         language = Language.where(:iso_639_2 => get_language(doc)).first
         if language
           language_id = language.id
+          if language.name == 'Japanese'
+            jpn_or_foreign = 0
+          else
+            jpn_or_foreign = 1
+          end
         else
           language_id = 1
         end
@@ -136,6 +142,7 @@ module EnjuNdl
           manifestation.carrier_type = carrier_type if carrier_type
           manifestation.manifestation_content_type = content_type if content_type
           manifestation.periodical = true if publication_periodicity
+          manifestation.jpn_or_foreign = jpn_or_foreign if jpn_or_foreign
           if manifestation.save
             identifier.each do |k, v|
               manifestation.identifiers << v if v.valid?
