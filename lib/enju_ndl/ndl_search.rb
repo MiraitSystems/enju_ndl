@@ -244,7 +244,7 @@ module EnjuNdl
       end
 
       def return_xml(isbn)
-        protocol = Setting.try(:ndl_api_type)
+        protocol = Setting.try(:ndl_api_type) rescue nil
         if protocol == 'sru'
           response = self.search_ndl_sru("isbn=#{isbn}")
           doc = Nokogiri::XML(response.content)
