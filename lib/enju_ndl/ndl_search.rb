@@ -52,19 +52,6 @@ module EnjuNdl
           end
         end
 
-        jpn_or_foreign = nil
-        language = Language.where(:iso_639_2 => get_language(doc)).first
-        if language
-          language_id = language.id
-          if language.name == 'Japanese'
-            jpn_or_foreign = 0
-          else
-            jpn_or_foreign = 1
-          end
-        else
-          language_id = 1
-        end
-
         isbn = Lisbn.new(doc.at('//dcterms:identifier[@rdf:datatype="http://ndl.go.jp/dcndl/terms/ISBN"]').try(:content).to_s).try(:isbn)
         issn = StdNum::ISSN.normalize(doc.at('//dcterms:identifier[@rdf:datatype="http://ndl.go.jp/dcndl/terms/ISSN"]').try(:content))
         issn_l = StdNum::ISSN.normalize(doc.at('//dcterms:identifier[@rdf:datatype="http://ndl.go.jp/dcndl/terms/ISSNL"]').try(:content))
@@ -105,7 +92,6 @@ module EnjuNdl
             :title_alternative_transcription => title[:alternative_transcription],
             # TODO: NDLサーチに入っている図書以外の資料を調べる
             #:carrier_type_id => CarrierType.where(:name => 'print').first.id,
-            :language_id => language_id,
             :pub_date => date,
             :description => description,
             :volume_number_string => volume_number_string,
@@ -142,7 +128,6 @@ module EnjuNdl
           manifestation.carrier_type = carrier_type if carrier_type
           manifestation.manifestation_content_type = content_type if content_type
           manifestation.periodical = true if publication_periodicity
-          manifestation.jpn_or_foreign = jpn_or_foreign if jpn_or_foreign
           if manifestation.save
             identifier.each do |k, v|
               manifestation.identifiers << v if v.valid?
@@ -161,19 +146,33 @@ module EnjuNdl
       def create_additional_attributes(doc, manifestation)
         title = get_title(doc)
         creators = get_creators(doc).uniq
-        language = get_language(doc)
+        languages = get_languages(doc).uniq
         subjects = get_subjects(doc).uniq
         classifications = get_classifications(doc).uniq
         classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
 
         Patron.transaction do
           creator_agents = Patron.import_patrons(creators)
-          language_id = Language.where(:iso_639_2 => language).first.id rescue 1
           content_type_id = ContentType.where(:name => 'text').first.id rescue 1
           manifestation.creators << creator_agents
 
+          if languages.present?
+            manifestation.languages = languages
+            if languages.collect(&:name).include?('Japanese')
+              manifestation.jpn_or_foreign = nil
+              manifestation.jpn_or_foreign = 0 if languages.size == 1
+            else
+              manifestation.jpn_or_foreign = 1
+            end
+          else
+            manifestation.languages << Language.where(:name => 'unknown')
+          end
+
           if defined?(EnjuSubject)
-            subject_heading_type = SubjectHeadingType.where(:name => 'ndlsh').first_or_create
+            #TODO ndlsh が大文字で登録されていた場合、バリデーションに引っ掛かりエラーが起きるため大文字でも検索
+            subject_heading_type = SubjectHeadingType.where(:name => 'ndlsh').first
+            subject_heading_type = SubjectHeadingType.where(:name => 'NDLSH').first if subject_heading_type.nil?
+            subject_heading_type = SubjectHeadingType.create(:name => 'ndlsh') if subject_heading_type.nil?
             subjects.each do |term|
               subject = Subject.where(:term => term[:term]).first
               unless subject
@@ -286,7 +285,7 @@ module EnjuNdl
         subjects = []
         doc.xpath('//dcterms:subject/rdf:Description').each do |subject|
           subjects << {
-            :term => subject.at('./rdf:value').content,
+            :term => subject.at('./rdf:value').content
             #:url => subject.attribute('about').try(:content)
           }
         end
@@ -303,12 +302,13 @@ module EnjuNdl
         classifications
       end
 
-      def get_language(doc)
-        # TODO: 言語が複数ある場合
-        language = doc.at('//dcterms:language[@rdf:datatype="http://purl.org/dc/terms/ISO639-2"]').try(:content)
-        if language
-          language.downcase
+      def get_languages(doc)
+        languages = []
+        doc.xpath('//dcterms:language[@rdf:datatype="http://purl.org/dc/terms/ISO639-2"]').each do |language|
+          search_lang = language.try(:content).try(:downcase)
+          languages << Language.where(:iso_639_2 => search_lang).first if search_lang.present?
         end
+        languages
       end
 
       def get_publishers(doc)
