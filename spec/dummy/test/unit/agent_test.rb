@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class PatronTest < ActiveSupport::TestCase
+class AgentTest < ActiveSupport::TestCase
   # test "the truth" do
   #   assert true
   # end

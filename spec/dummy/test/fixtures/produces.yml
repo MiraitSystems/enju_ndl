@@ -2,8 +2,8 @@
 
 one:
   manifestation_id: 1
-  patron_id: 1
+  agent_id: 1
 
 two:
   manifestation_id: 1
-  patron_id: 1
+  agent_id: 1

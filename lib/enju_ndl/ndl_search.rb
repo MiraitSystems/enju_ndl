@@ -81,8 +81,8 @@ module EnjuNdl
         location = doc.at('//dcndl:location').try(:content)
 
         manifestation = nil
-        Patron.transaction do
-          publisher_agents = Patron.import_patrons(publishers)
+        Agent.transaction do
+          publisher_agents = Agent.import_agents(publishers)
 
           manifestation = Manifestation.new(
             :manifestation_identifier => admin_identifier,
@@ -151,8 +151,8 @@ module EnjuNdl
         classifications = get_classifications(doc).uniq
         classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
 
-        Patron.transaction do
-          creator_agents = Patron.import_patrons(creators)
+        Agent.transaction do
+          creator_agents = Agent.import_agents(creators)
           content_type_id = ContentType.where(:name => 'text').first.id rescue 1
           manifestation.creators << creator_agents
 
