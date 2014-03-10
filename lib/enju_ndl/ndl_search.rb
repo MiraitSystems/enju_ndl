@@ -22,7 +22,9 @@ module EnjuNdl
         doc = nil
 
         if options[:jpno]
-          manifestation = Manifestation.where(nbn: options[:jpno])
+					jpno = options[:jpno]
+					nbn = "JP#{jpno}" unless /^JP/ =~ jpno
+          manifestation = Manifestation.where(nbn: nbn)
 
           return manifestation.first if manifestation.present?
 
@@ -131,7 +133,7 @@ module EnjuNdl
           if jpno
             identifier[:jpno] = Identifier.new(:body => jpno)
             identifier[:jpno].identifier_type = IdentifierType.where(:name => 'jpno').first_or_create
-            manifestation.nbn = jpno # for enju_turnk
+            manifestation.nbn = "JP#{jpno}" # for enju_turnk
           end
           if issn
             identifier[:issn] = Identifier.new(:body => issn)
