@@ -6,21 +6,37 @@ module EnjuNdl
     end
 
     module ClassMethods
+			def import_jpno(jpno)
+        manifestation = Manifestation.import_from_ndl_search(:jpno => jpno)
+        manifestation
+			end
+
       def import_isbn(isbn)
         manifestation = Manifestation.import_from_ndl_search(:isbn => isbn)
         manifestation
       end
 
       def import_from_ndl_search(options)
-        #if options[:isbn]
+				manifestation = nil
+				lisbn = nil
+				doc = nil
+
+				if options[:jpno]
+					manifestation = Manifestation.where(nbn: options[:jpno])
+
+        	return manifestation if manifestation.present?
+
+					doc = return_xml_from_jpno(options[:jpno])
+				else
           lisbn = Lisbn.new(options[:isbn])
           raise EnjuNdl::InvalidIsbn unless lisbn.valid?
-        #end
+        	manifestation = Manifestation.find_by_isbn(lisbn.isbn)
 
-        manifestation = Manifestation.find_by_isbn(lisbn.isbn)
-        return manifestation if manifestation.present?
+        	return manifestation if manifestation.present?
 
-        doc = return_xml(lisbn.isbn)
+	        doc = return_xml(lisbn.isbn)
+        end
+
         raise EnjuNdl::RecordNotFound unless doc
         #raise EnjuNdl::RecordNotFound if doc.at('//openSearch:totalResults').content.to_i == 0
         import_record(doc)
@@ -115,6 +131,7 @@ module EnjuNdl
           if jpno
             identifier[:jpno] = Identifier.new(:body => jpno)
             identifier[:jpno].identifier_type = IdentifierType.where(:name => 'jpno').first_or_create
+            manifestation.nbn = jpno # for enju_turnk
           end
           if issn
             identifier[:issn] = Identifier.new(:body => issn)
@@ -258,6 +275,19 @@ module EnjuNdl
           end
         end
       end
+
+			def return_xml_from_jpno(jpno)
+        protocol = Setting.try(:ndl_api_type) rescue nil
+        if protocol == 'sru'
+          response = self.search_ndl_sru("jpno=#{isbn}")
+          doc = Nokogiri::XML(response.content)
+        else # protocol == 'opensearch'
+          rss = self.search_ndl(jpno, {:dpid => 'iss-ndl-opac', :item => 'jpno'})
+          if rss.items.first
+            doc = Nokogiri::XML(open("#{rss.items.first.link}.rdf").read)
+          end
+        end
+			end
 
       private
       def get_title(doc)
