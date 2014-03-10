@@ -6,10 +6,10 @@ module EnjuNdl
     end
 
     module ClassMethods
-			def import_jpno(jpno)
+      def import_jpno(jpno)
         manifestation = Manifestation.import_from_ndl_search(:jpno => jpno)
         manifestation
-			end
+      end
 
       def import_isbn(isbn)
         manifestation = Manifestation.import_from_ndl_search(:isbn => isbn)
@@ -17,16 +17,16 @@ module EnjuNdl
       end
 
       def import_from_ndl_search(options)
-				manifestation = nil
-				lisbn = nil
-				doc = nil
+        manifestation = nil
+        lisbn = nil
+        doc = nil
 
-				if options[:jpno]
-					manifestation = Manifestation.where(nbn: options[:jpno])
+        if options[:jpno]
+          manifestation = Manifestation.where(nbn: options[:jpno])
 
-        	return manifestation if manifestation.present?
+          return manifestation.first if manifestation.present?
 
-					doc = return_xml_from_jpno(options[:jpno])
+          doc = return_xml_from_jpno(options[:jpno])
 				else
           lisbn = Lisbn.new(options[:isbn])
           raise EnjuNdl::InvalidIsbn unless lisbn.valid?
