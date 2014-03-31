@@ -22,21 +22,22 @@ module EnjuNdl
         doc = nil
 
         if options[:jpno]
-					jpno = options[:jpno]
-					nbn = "JP#{jpno}" unless /^JP/ =~ jpno
+          jpno = options[:jpno]
+          nbn = jpno
+          nbn = "JP#{jpno}" unless /^JP/ =~ jpno
           manifestation = Manifestation.where(nbn: nbn)
 
           return manifestation.first if manifestation.present?
 
           doc = return_xml_from_jpno(options[:jpno])
-				else
+        else
           lisbn = Lisbn.new(options[:isbn])
           raise EnjuNdl::InvalidIsbn unless lisbn.valid?
-        	manifestation = Manifestation.find_by_isbn(lisbn.isbn)
+          manifestation = Manifestation.find_by_isbn(lisbn.isbn)
 
-        	return manifestation if manifestation.present?
+          return manifestation if manifestation.present?
 
-	        doc = return_xml(lisbn.isbn)
+          doc = return_xml(lisbn.isbn)
         end
 
         raise EnjuNdl::RecordNotFound unless doc
@@ -235,7 +236,7 @@ module EnjuNdl
           feed = RSS::Parser.parse(url, false)
         end
       end
-  
+
       def search_ndl_sru(query, options = {})
         options = {:operation => 'searchRetrieve', :recordScheme => 'dcndl', :startRecord => 1, :maximumRecords => 10}.merge(options)
         doc = nil
@@ -278,7 +279,7 @@ module EnjuNdl
         end
       end
 
-			def return_xml_from_jpno(jpno)
+      def return_xml_from_jpno(jpno)
         protocol = Setting.try(:ndl_api_type) rescue nil
         if protocol == 'sru'
           response = self.search_ndl_sru("jpno=#{isbn}")
@@ -289,7 +290,7 @@ module EnjuNdl
             doc = Nokogiri::XML(open("#{rss.items.first.link}.rdf").read)
           end
         end
-			end
+      end
 
       private
       def get_title(doc)
