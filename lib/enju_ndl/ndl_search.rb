@@ -29,7 +29,7 @@ module EnjuNdl
 
           return manifestation.first if manifestation.present?
 
-          doc = return_xml_from_jpno(options[:jpno])
+          doc = return_xml_from_jpno(jpno)
         else
           lisbn = Lisbn.new(options[:isbn])
           raise EnjuNdl::InvalidIsbn unless lisbn.valid?
