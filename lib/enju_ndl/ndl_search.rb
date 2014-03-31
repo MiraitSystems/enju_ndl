@@ -22,7 +22,7 @@ module EnjuNdl
         doc = nil
 
         if options[:jpno]
-          jpno = jpno.gsub(/^JP/, "")
+          jpno = options[:jpno].gsub(/^JP/, "")
           nbn = jpno
           nbn = "JP#{jpno}" unless /^JP/ =~ jpno
           manifestation = Manifestation.where(nbn: nbn)
