@@ -176,7 +176,6 @@ module EnjuNdl
           creator_agents = Agent.import_agents(creators)
           content_type_id = ContentType.where(:name => 'text').first.id rescue 1
           manifestation.creators << creator_agents
-=begin
           if languages.present?
             manifestation.languages << languages
             if languages.collect(&:name).include?('Japanese')
@@ -188,7 +187,6 @@ module EnjuNdl
           else
             manifestation.languages << Language.where(:name => 'unknown')
           end
-=end
           if defined?(EnjuSubject)
             #TODO ndlsh が大文字で登録されていた場合、バリデーションに引っ掛かりエラーが起きるため大文字でも検索
             subject_heading_type = SubjectHeadingType.where(:name => 'ndlsh').first
