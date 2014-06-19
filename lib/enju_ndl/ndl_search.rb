@@ -159,7 +159,8 @@ module EnjuNdl
         end
 
         #manifestation.send_later(:create_frbr_instance, doc.to_s)
-        manifestation.external_catalog = 1 # for enju_trunk
+        catalog = Catalog.where(name: 'ndl').first
+        manifestation.catalog = catalog if catalog # for enju_trunk
         return manifestation
       end
 
@@ -175,9 +176,9 @@ module EnjuNdl
           creator_agents = Agent.import_agents(creators)
           content_type_id = ContentType.where(:name => 'text').first.id rescue 1
           manifestation.creators << creator_agents
-
+=begin
           if languages.present?
-            manifestation.languages = languages
+            manifestation.languages << languages
             if languages.collect(&:name).include?('Japanese')
               manifestation.jpn_or_foreign = nil
               manifestation.jpn_or_foreign = 0 if languages.size == 1
@@ -187,7 +188,7 @@ module EnjuNdl
           else
             manifestation.languages << Language.where(:name => 'unknown')
           end
-
+=end
           if defined?(EnjuSubject)
             #TODO ndlsh が大文字で登録されていた場合、バリデーションに引っ掛かりエラーが起きるため大文字でも検索
             subject_heading_type = SubjectHeadingType.where(:name => 'ndlsh').first
