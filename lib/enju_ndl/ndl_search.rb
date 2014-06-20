@@ -389,6 +389,7 @@ module EnjuNdl
               :original_title => series_title[:title],
               :title_transcription => series_title[:title_transcription]
             )
+            series_statement.root_manifestation = series_statement.initialize_root_manifestation
           end
         end
 
