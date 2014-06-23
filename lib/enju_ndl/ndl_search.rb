@@ -316,16 +316,37 @@ module EnjuNdl
 
       def get_classifications(doc)
         classifications = []
+        # NDLC, NDC9, DDC
         classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
         classification_urls.each do |url|
-          path = URI.parse(URI.escape(url)).path
-          type = path.split('/').reverse[1]
-          identifier = path.split('/').last 
-          classification_type = ClassificationType.where(:name => type).first
-          classification = Classification.where(:classification_type_id => classification_type.id, :classification_identifier => identifier).first if classification_type
-          classifications << classification if classification
+          array = url.split('/')
+          if array.last == 'about' # DDC
+            type = 'dc'
+            identifier = array.reverse[1] 
+          else # NDLC, NDC9
+            type = array.reverse[1]
+            identifier = array.last
+          end
+          classifications << get_or_create_classification(type, identifier)
         end
-        classifications
+
+        # NDC8, NDC, LCC, UDC, GHQ/SCAP, USCAR, MCJ
+        classification_urls = doc.xpath('//dc:subject[@rdf:datatype]').map{|subject| subject.attributes['datatype'].value}
+        classification_urls.each do |url|
+          type = url.split('/').last.downcase
+          identifier = doc.xpath("//dc:subject[@rdf:datatype='#{url}']").collect(&:content).join('')
+          classifications << get_or_create_classification(type, identifier)
+        end
+        classifications = classifications.compact
+      end
+
+      def get_or_create_classification(type, identifier)
+        classification_type = ClassificationType.where(:name => type).first
+        if classification_type
+          classification = Classification.where(:classification_type_id => classification_type.id, :classification_identifier => identifier).first ||
+                           Classification.where(:classification_type_id => classification_type.id, :classification_identifier => identifier, :category => I18n.t('enju_ndl.undefined_classification')).create
+        end
+        classification
       end
 
       def get_languages(doc)
