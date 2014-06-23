@@ -170,7 +170,6 @@ module EnjuNdl
         languages = get_languages(doc).uniq
         subjects = get_subjects(doc).uniq
         classifications = get_classifications(doc).uniq
-        classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
 
         Agent.transaction do
           creator_agents = Agent.import_agents(creators)
@@ -204,16 +203,7 @@ module EnjuNdl
               #end
               #subject.save!
             end
-            if classification_urls
-              ndc9_url = classification_urls.map{|url| URI.parse(URI.escape(url))}.select{|u| u.path.split('/').reverse[1] == 'ndc9'}.first
-              if ndc9_url
-                ndc = ndc9_url.path.split('/').last
-                classification_type = ClassificationType.where(:name => 'ndc9').first_or_create
-                classification = Classification.new(:category => ndc)
-                classification.classification_type = classification_type
-                manifestation.classifications << classification if classification.valid?
-              end
-            end
+            manifestation.classifications = classifications
           end
         end
       end
@@ -326,10 +316,14 @@ module EnjuNdl
 
       def get_classifications(doc)
         classifications = []
-        doc.xpath('//dcterms:subject[@rdf:resource]').each do |classification|
-          classifications << {
-            :url => classification.attributes["resource"].content
-          }
+        classification_urls = doc.xpath('//dcterms:subject[@rdf:resource]').map{|subject| subject.attributes['resource'].value}
+        classification_urls.each do |url|
+          path = URI.parse(URI.escape(url)).path
+          type = path.split('/').reverse[1]
+          identifier = path.split('/').last 
+          classification_type = ClassificationType.where(:name => type).first
+          classification = Classification.where(:classification_type_id => classification_type.id, :classification_identifier => identifier).first if classification_type
+          classifications << classification if classification
         end
         classifications
       end
