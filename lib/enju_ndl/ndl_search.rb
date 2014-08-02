@@ -402,7 +402,8 @@ module EnjuNdl
           unless series_statement
             series_statement = SeriesStatement.new(
               :original_title => series_title[:title],
-              :title_transcription => series_title[:title_transcription]
+              :title_transcription => series_title[:title_transcription],
+              :periodical => manifestation.periodical ? true : false
             )
             series_statement.root_manifestation = series_statement.initialize_root_manifestation
           end
@@ -410,6 +411,7 @@ module EnjuNdl
 
         if series_statement.try(:save)
           manifestation.series_statement = series_statement # for enju_trunk
+          series_statement.root_manifestation.series_statement = series_statement
         end
         manifestation
       end
