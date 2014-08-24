@@ -113,7 +113,8 @@ module EnjuNdl
             #:carrier_type_id => CarrierType.where(:name => 'print').first.id,
             :pub_date => date,
             :description => description,
-            :volume_number_string => volume_number_string,
+            #:volume_number_string => volume_number_string,
+            :edition_display_value => volume_number_string,
             :price => price,
 #            :statement_of_responsibility => statement_of_responsibility,
             :start_page => extent[:start_page],
@@ -125,7 +126,7 @@ module EnjuNdl
           if isbn
             identifier[:isbn] = Identifier.new(:body => isbn)
             identifier[:isbn].identifier_type = IdentifierType.where(:name => 'isbn').first_or_create
-            manifestation.isbn = isbn # for enju_trunk
+            #manifestation.isbn = isbn # for enju_trunk
           end
           if iss_itemno
             identifier[:iss_itemno] = Identifier.new(:body => iss_itemno)
@@ -134,12 +135,12 @@ module EnjuNdl
           if jpno
             identifier[:jpno] = Identifier.new(:body => jpno)
             identifier[:jpno].identifier_type = IdentifierType.where(:name => 'jpno').first_or_create
-            manifestation.nbn = "JP#{jpno}" # for enju_turnk
+            #manifestation.nbn = "JP#{jpno}" # for enju_turnk
           end
           if issn
             identifier[:issn] = Identifier.new(:body => issn)
             identifier[:issn].identifier_type = IdentifierType.where(:name => 'issn').first_or_create
-            manifestation.issn = issn # for enju_turnk
+            #manifestation.issn = issn # for enju_turnk
           end
           if issn_l
             identifier[:issn_l] = Identifier.new(:body => issn_l)
