@@ -196,7 +196,9 @@ module EnjuNdl
               unless subject
                 subject = Subject.new(term)
                 subject.subject_heading_types << subject_heading_type # for enju_trunk
-                subject.subject_type = SubjectType.where(:name => 'Concept').first_or_create
+                subject_type = SubjectType.where(:name => 'Concept').first
+                subject_type = SubjectType.where(:name => 'concept').first_or_create unless subject_type
+                subject.subject_type = subject_type
               end
               #if subject.valid?
                 manifestation.subjects << subject
